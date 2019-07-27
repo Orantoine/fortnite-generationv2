@@ -1,0 +1,49 @@
+pipeline {
+    agent any
+    tools {
+        maven 'Maven 3.3.9'
+        jdk 'jdk8'
+    }
+    environment {
+        registry = "orantoine/fortnite-generationv2"
+        registryCredential = 'dockerhub'
+        VERSION = readMavenPom().getVersion()
+    }
+    stages {
+        stage ('Initialize') {
+            steps {
+                sh '''
+                    echo "PATH = ${PATH}"
+                    echo "M2_HOME = ${M2_HOME}"
+                '''
+            }
+        }
+
+        stage ('Build') {
+            steps {
+                sh 'mvn clean install'
+            }
+        }
+        stage('Post'){
+            steps{
+                script {
+                        dockerImage = docker.build registry + ":"+VERSION
+                }
+            }
+        }
+        stage('Deploy Image') {
+          steps{
+            script {
+              docker.withRegistry( '', registryCredential ) {
+                dockerImage.push()
+              }
+            }
+          }
+        }
+        stage('Remove Unused docker image') {
+          steps{
+             sh "docker rmi $registry:$VERSION"
+          }
+        }
+    }
+}
