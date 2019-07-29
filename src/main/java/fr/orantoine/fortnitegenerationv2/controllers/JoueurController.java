@@ -1,8 +1,13 @@
 package fr.orantoine.fortnitegenerationv2.controllers;
 
 
+import com.mashape.unirest.http.HttpResponse;
+import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
 import fr.orantoine.fortnitegenerationv2.models.Joueur;
 import fr.orantoine.fortnitegenerationv2.repository.JoueurRepository;
+import fr.orantoine.fortnitegenerationv2.services.JoueurService;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -59,5 +64,36 @@ public class JoueurController {
         joueurRepository.deleteById(id);
         return ResponseEntity.accepted().build();
 
+    }
+
+
+    @GetMapping(value = "/search/{id}")
+    public ResponseEntity<Joueur> searchJoueur(@PathVariable String id){
+        try {
+            HttpResponse<String> jsonResponse = Unirest.get("https://api.fortnitetracker.com/v1/profile/ps4/" + id)
+                    .header("accept", "application/json")
+                    .header("TRN-Api-Key", "2dda56fe-8332-49f0-a4b5-7266757efdf4")
+                    .header("cache-control", "no-cache").asString();
+            JSONObject jsonObject = new JSONObject(jsonResponse.getBody());
+            if(jsonObject.has("error")) {
+                return ResponseEntity.notFound().build();
+            }
+            else{
+                JoueurService joueurService = new JoueurService();
+                Joueur joueur = joueurService.createJoueur(jsonObject);
+                Joueur joueurAdded = joueurRepository.save(joueur);
+                if (joueurAdded != null) {
+                    URI location = ServletUriComponentsBuilder
+                            .fromCurrentContextPath()
+                            .path("/joueur/{id}")
+                            .buildAndExpand(joueurAdded.getId())
+                            .toUri();
+                    return ResponseEntity.status(200).location(location).body(joueurAdded);
+                }
+            }
+        } catch (UnirestException e) {
+            e.printStackTrace();
+        }
+        return ResponseEntity.status(500).build();
     }
 }

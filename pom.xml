@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>fr.orantoine</groupId>
 	<artifactId>fortnite-generationv2</artifactId>
-	<version>1.0.1</version>
+	<version>1.1.0</version>
 	<name>fortnite-generationv2</name>
 	<description>Demo project for Spring Boot</description>
 
